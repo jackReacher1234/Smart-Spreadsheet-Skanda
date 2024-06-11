@@ -172,6 +172,17 @@ def extract_text_from_pdf(pdf_file):
         text += page.get_text()
     return text
 
+def give_serialized_string(excel_file):
+    tables = serialize_excel_tables(excel_file=excel_file)
+    serialized_tables = []
+    for table in tables:
+        table_text = '\n'.join(['\t'.join(row) for row in table])
+        serialized_tables.append(table_text)
+    
+    result_text = '\n\n'.join(serialized_tables)
+    
+    return result_text
+
 def serialize_excel_tables(excel_file):
     df = pd.read_excel(excel_file, header=None)
     tables = []
@@ -195,19 +206,10 @@ def serialize_excel_tables(excel_file):
             # Add the non-empty row to the current table
             current_table.append(row.astype(str).tolist())
     
-    # Add the last table if it exists
     if current_table:
         tables.append(current_table)
-    # Serialize each table to a string
-    serialized_tables = []
-    for table in tables:
-        table_text = '\n'.join(['\t'.join(row) for row in table])
-        serialized_tables.append(table_text)
-    
-    # Join all the tables into one single string
-    result_text = '\n\n'.join(serialized_tables)
-    
-    return result_text
+    return tables
+
 
 def clean_text(text):
     return ' '.join(text.split())
