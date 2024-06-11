@@ -14,6 +14,8 @@ from openai import OpenAI
 from openai import AuthenticationError
 import os
 from dotenv import load_dotenv
+from typing import List
+import numpy as np
 
 load_dotenv()
 
@@ -183,31 +185,64 @@ def give_serialized_string(excel_file):
     
     return result_text
 
-def serialize_excel_tables(excel_file):
-    df = pd.read_excel(excel_file, header=None)
+def serialize_excel_tables(file):
+    # Load workbook and get active sheet
+    wb = load_workbook(file, data_only=True)
+    sheet = wb.active
+
+    # Helper functions for border detection
+    def has_border(cell: Cell) -> bool:
+        return has_row_border(cell) or has_col_border(cell)
+
+    def has_row_border(cell: Cell) -> bool:
+        border = cell.border
+        return bool(border.top.style or border.bottom.style)
+
+    def has_col_border(cell: Cell) -> bool:
+        border = cell.border
+        return bool(border.left.style or border.right.style)
+
+    # Convert the sheet into a 2D list of cells and flags for processing
+    rows = list(sheet.iter_rows())
+    flags = np.zeros((len(rows), len(rows[0])), dtype=int)
+    
     tables = []
-    current_table = []
-    empty_row_count = 0
-    
-    # Iterate through each row
-    for index, row in df.iterrows():
-        # Check if the row is completely empty
-        if row.isnull().all():
-            empty_row_count += 1
-        else:
-            if empty_row_count == 1:
-                # Single empty row indicates the end of a table
-                if current_table:
-                    tables.append(current_table)
-                    current_table = []
-            # Reset empty row counter
-            empty_row_count = 0
-            
-            # Add the non-empty row to the current table
-            current_table.append(row.astype(str).tolist())
-    
-    if current_table:
-        tables.append(current_table)
+
+    def get_table(start_row_idx: int, start_col_idx: int) -> List[List[Any]]:
+        header_row = rows[start_row_idx]
+        end_col_idx = len(header_row) - 1
+        
+        for col_idx in range(start_col_idx, len(header_row)):
+            cell = header_row[col_idx]
+            if not has_border(cell):
+                end_col_idx = col_idx - 1
+                break
+
+        table = []
+        for row_idx in range(start_row_idx, len(rows)):
+            cell = rows[row_idx][start_col_idx]
+            if not has_border(cell):
+                break
+            row_data = []
+            for col_idx in range(start_col_idx, end_col_idx + 1):
+                row_data.append(rows[row_idx][col_idx].value)
+                flags[row_idx][col_idx] = 1
+            table.append(row_data)
+        return table
+
+    # Iterate over all cells to find tables based on borders
+    for row_idx, row in enumerate(rows):
+        for col_idx, cell in enumerate(row):
+            if flags[row_idx][col_idx] == 0 and has_border(cell):
+                table = get_table(row_idx, col_idx)
+                if table:
+                    tables.append(table)
+
+    # if tables have a table in which every item of a row is null then remove that row
+    for table in tables:
+        for row in table:
+            if all([cell is None for cell in row]):
+                table.remove(row)
     return tables
 
 
