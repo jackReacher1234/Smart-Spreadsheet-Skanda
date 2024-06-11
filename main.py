@@ -1,10 +1,19 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException
-from typing import List
+from typing import List, Dict
 import io
 from pydantic import BaseModel
 from helper_functions import fetch_document, extract_text_from_pdf, give_serialized_string, extract_text_from_csv, clean_text, answer_question, serialize_excel_tables
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class QuestionRequest(BaseModel):
     document_urls: str
@@ -39,7 +48,7 @@ async def get_answer(request: QuestionRequest):
 
 @app.post("/give_tables/")
 async def get_answer(files: List[UploadFile] = File(...)):
-    tables_list = []
+    tables_dict = {}
 
     for file in files:
         if file.filename.endswith('.xls') or file.filename.endswith('.xlsx'):
@@ -54,7 +63,7 @@ async def get_answer(files: List[UploadFile] = File(...)):
                 
                 # Process the Excel file and serialize tables
                 tables = serialize_excel_tables(excel_file)
-                tables_list.extend(tables)
+                tables_dict[file.filename] = tables
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Error processing file {file.filename}: {e}")
         elif file.filename.endswith('.csv'):
@@ -62,7 +71,7 @@ async def get_answer(files: List[UploadFile] = File(...)):
         else:
             raise HTTPException(status_code=400, detail=f"Unsupported file type for file: {file.filename}")
     
-    return {"tables": tables_list}
+    return {"tables": tables_dict}
 
 if __name__ == "__main__":
     import uvicorn
