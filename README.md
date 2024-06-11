@@ -1,5 +1,51 @@
 # Smart Spreadsheet
 
+## Runninng the project locally
+
+Follow these steps to run the project locally!
+
+1. **Get the Project Files:**:
+
+   ```sh
+   git clone https://github.com/jackReacher1234/Smart-Spreadsheet-Skanda.git
+   cd Smart-Spreadsheet-Skanda
+   ```
+
+2. **Prepare Your Environment**:
+   Developed in Python 3.12.3
+   ```sh
+   python -m venv .venv
+   source ./.venv/bin/activate  # On Mac and Linux
+   source .venv\Scripts\activate # On Windows
+   ```
+
+3. **Install Dependencies**:
+   Install the required Python packages using `pip`:
+
+   ```sh
+   pip install -r requirements.txt
+   ```
+
+4. **Set Up Environment Variables**:
+   Create a .env file in the root directory of the project and add your OpenAI API key:
+
+   ```sh
+   echo "OPENAI_API_KEY=your_openai_api_key" > .env
+   ```
+
+5. **Execute code**:
+   ```sh
+   python main.py
+   ```
+
+6. **Provide File URLs**:
+   While the application is running, it prompts you to provide the hosted URL or local URL to the xlsx, xls, csv, or pdf file that needs analysis. If you have multiple files, separate them with commas and press Enter when finished.
+
+7. **Provide Promots**:
+   You can now type your questions related to the documents you've added.
+
+Happy hacking!
+
 ## Introduction
 
 As a **Founding Senior Engineer** at Capix you will lead the the development of the Company’s technical vision and strategy, oversee all the technological development, and help develop and implement the product. This is a very critical role. It is paramount that you are a master of engineering able to ship great software fast. We’re looking for the 10Xers and this project helps us evaluate if you can get the job done. 

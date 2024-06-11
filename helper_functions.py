@@ -5,6 +5,18 @@ from openpyxl.worksheet.worksheet import Worksheet
 
 from typing import Any, Union
 
+import requests
+from io import BytesIO
+import fitz
+import pandas as pd
+
+from openai import OpenAI
+from openai import AuthenticationError
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 def get_sheet_from_excel(filename: Path, sheet_name: str) -> Worksheet:
     """
@@ -126,10 +138,7 @@ def process_hierarchical_table(ws: Worksheet) -> dict[str, Any]:
 
     # Process each row into the hierarchical structure
     for row in ws.iter_rows(min_row=2, values_only=False):
-        level = (
-            len(serialize_value(row[0])))
-            - len(serialize_value(row[0])).lstrip()
-         // num_leading_space_per_level
+        level = (len(serialize_value(row[0])) - len(serialize_value(row[0]).lstrip())) // num_leading_space_per_level
         label = serialize_value(row[0]).strip()
         data_cells = row[1:]
 
@@ -140,3 +149,92 @@ def process_hierarchical_table(ws: Worksheet) -> dict[str, Any]:
             processed_table = add_data(processed_table, nodes, col_headers, data_cells)
 
     return remove_none_key_value_pairs(processed_table)
+
+
+def fetch_document(source):
+    if source.startswith('http://') or source.startswith('https://'):
+        response = requests.get(source)
+        response.raise_for_status()
+        return BytesIO(response.content)
+    elif os.path.exists(source):
+        return source
+    else:
+        raise FileNotFoundError(f"No such file or URL: {source}")
+    
+def extract_text_from_csv(csv_file):
+    df = pd.read_csv(csv_file)
+    return ' '.join(df.fillna('').astype(str).values.flatten())
+
+def extract_text_from_pdf(pdf_file):
+    doc = fitz.open(stream=pdf_file, filetype="pdf")
+    text = ""
+    for page in doc:
+        text += page.get_text()
+    return text
+
+def serialize_excel_tables(excel_file):
+    df = pd.read_excel(excel_file, header=None)
+    tables = []
+    current_table = []
+    empty_row_count = 0
+    
+    # Iterate through each row
+    for index, row in df.iterrows():
+        # Check if the row is completely empty
+        if row.isnull().all():
+            empty_row_count += 1
+        else:
+            if empty_row_count == 1:
+                # Single empty row indicates the end of a table
+                if current_table:
+                    tables.append(current_table)
+                    current_table = []
+            # Reset empty row counter
+            empty_row_count = 0
+            
+            # Add the non-empty row to the current table
+            current_table.append(row.astype(str).tolist())
+    
+    # Add the last table if it exists
+    if current_table:
+        tables.append(current_table)
+    # Serialize each table to a string
+    serialized_tables = []
+    for table in tables:
+        table_text = '\n'.join(['\t'.join(row) for row in table])
+        serialized_tables.append(table_text)
+    
+    # Join all the tables into one single string
+    result_text = '\n\n'.join(serialized_tables)
+    
+    return result_text
+
+def clean_text(text):
+    return ' '.join(text.split())
+
+def get_openai_client(api_key):
+    try:
+        client = OpenAI(api_key=api_key)
+        # Perform a minimal request to validate the API key
+        client.models.list()
+        return client
+    
+    except AuthenticationError as e:
+        raise ValueError("Invalid OpenAI API key.") from e
+    
+    except Exception as e:
+        raise
+
+def answer_question(text, question):
+    openai_api_key = os.getenv('OPENAI_API_KEY')
+    openai_client = get_openai_client(openai_api_key)
+
+    completion = openai_client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a helpful assistant."},
+            {"role": "user", "content": text},
+            {"role": "user", "content": question}
+        ]
+    )
+    return completion.choices[0].message.content
