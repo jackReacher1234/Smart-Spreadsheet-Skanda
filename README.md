@@ -23,7 +23,7 @@ Follow these steps to run the project locally!
    Install the required Python packages using `pip`:
 
    ```sh
-   pip install -r requirements.txt
+   pip install -r requirement.txt
    ```
 
 4. **Set Up Environment Variables**:
