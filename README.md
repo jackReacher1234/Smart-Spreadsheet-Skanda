@@ -25,24 +25,18 @@ Follow these steps to run the project locally!
    ```sh
    pip install -r requirement.txt
    ```
-
-4. **Set Up Environment Variables**:
-   Create a .env file in the root directory of the project and add your OpenAI API key:
-
-   ```sh
-   echo "OPENAI_API_KEY=your_openai_api_key" > .env
-   ```
-
-5. **Execute code**:
+4. **Execute code**:
    ```sh
    python main.py
    ```
+5. **Clone frontend:**
+   ```sh
+   git clone https://github.com/jackReacher1234/smart-spreadsheet-next.git
+   ```
 
-6. **Provide File URLs**:
-   While the application is running, it prompts you to provide the hosted URL or local URL to the xlsx, xls, csv, or pdf file that needs analysis. If you have multiple files, separate them with commas and press Enter when finished.
-
-7. **Provide Promots**:
-   You can now type your questions related to the documents you've added.
+6. **Run frontend locally**
+   
+   Follow the instructions mentioned in frontend repository to run it locally! You can also find the hosted frontend available at https://www.nextify.dev/
 
 Happy hacking!
 
